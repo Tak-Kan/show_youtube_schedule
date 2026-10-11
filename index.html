@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>配信スケジュール</title>
+<link rel="icon" href="data:,">
+<style>
+:root{
+  --bg:#f6f6f3; --surface:#ffffff; --text:#1c1c1a; --muted:#6c6c66; --line:#e3e3dd;
+  --live:#e11d2e; --soon:#b45309; --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#131312; --surface:#1d1d1b; --text:#ecece8; --muted:#9b9b94; --line:#2e2e2b; --live:#ff5a67; --soon:#fbbf24; }
+}
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif}
+[hidden]{display:none!important}
+button,input,select{font:inherit;color:inherit}
+
+.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 90%,transparent);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-inner{max-width:1240px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+h1{font-size:16px;margin:0;font-weight:700;letter-spacing:.02em}
+.tabs{display:flex;gap:4px}
+.tab{border:0;background:transparent;padding:6px 14px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:600}
+.tab[aria-selected="true"]{background:var(--text);color:var(--bg)}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--surface);padding:6px 12px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.primary{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:600}
+.btn.ghost{background:transparent}
+
+.wrap{max-width:1240px;margin:0 auto;padding:16px 16px 64px}
+.banner{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;
+  background:var(--surface);border:1px solid var(--live);border-left-width:4px;border-radius:10px;padding:10px 14px;margin-bottom:16px}
+.banner button{border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:18px;line-height:1}
+.panel{max-width:640px;margin:40px auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+.panel h2{margin:0 0 8px;font-size:18px}
+.panel p{margin:8px 0;color:var(--muted)}
+.panel code{background:var(--bg);border:1px solid var(--line);padding:1px 6px;border-radius:6px;font-size:13px;word-break:break-all}
+.form{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.form input{flex:1;min-width:220px}
+input[type=text],input[type=search],select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 12px;min-width:0}
+input:focus,select:focus,button:focus-visible,.card:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.toolbar input[type=search]{flex:1;min-width:200px;max-width:420px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:7px 14px;cursor:pointer;color:var(--muted);font-weight:600}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--text);color:var(--bg)}
+.seg .n{font-weight:400;opacity:.75;margin-left:4px;font-variant-numeric:tabular-nums}
+.status{color:var(--muted);font-size:13px;margin:12px 0 0;min-height:20px}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--text);
+  border-radius:50%;animation:r .8s linear infinite;vertical-align:-2px;margin-right:8px}
+@keyframes r{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+
+.sec{display:flex;align-items:baseline;gap:8px;margin:24px 0 10px;font-size:14px;font-weight:700}
+.sec .c{color:var(--muted);font-weight:400}
+.sec.live{color:var(--live)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.card{display:block;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;text-decoration:none;color:inherit;
+  transition:transform .12s,border-color .12s}
+.card:hover{transform:translateY(-2px);border-color:var(--muted)}
+.thumb{position:relative;aspect-ratio:16/9;background:var(--line)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.badge{position:absolute;left:8px;top:8px;padding:1px 8px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.04em;color:#fff}
+.badge.live{background:var(--live)}
+.badge.soon{background:rgba(0,0,0,.72)}
+.meta{padding:10px 12px 12px}
+.title{font-weight:600;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.9em}
+.ch{color:var(--muted);font-size:13px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.when{font-size:13px;margin-top:6px;font-variant-numeric:tabular-nums}
+.when.live{color:var(--live);font-weight:600}
+.when.soon{color:var(--soon);font-weight:600}
+.empty{text-align:center;color:var(--muted);padding:64px 0}
+.more{display:flex;gap:8px;justify-content:center;margin-top:24px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <h1>配信スケジュール</h1>
+    <nav class="tabs" id="tabs" role="tablist" hidden>
+      <button class="tab" role="tab" data-tab="live" aria-selected="true">配信</button>
+      <button class="tab" role="tab" data-tab="playlists" aria-selected="false">再生リスト</button>
+    </nav>
+    <div class="spacer"></div>
+    <button class="btn" id="btn-refresh" hidden>更新</button>
+    <button class="btn ghost" id="btn-settings" hidden>設定</button>
+    <button class="btn ghost" id="btn-logout" hidden>ログアウト</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="banner" id="banner" role="alert" hidden>
+    <span id="banner-text"></span>
+    <button id="banner-close" aria-label="閉じる">×</button>
+  </div>
+
+  <!-- クライアントID設定 -->
+  <section class="panel" id="view-setup" hidden>
+    <h2>OAuthクライアントIDを設定</h2>
+    <p>Google Cloud で発行したウェブアプリ用のクライアントIDを貼り付けてください。このブラウザ内にのみ保存されます。</p>
+    <p>Google Cloud の「承認済みのJavaScript生成元」に登録する値：<br><code id="origin"></code>
+      <button class="btn ghost" id="copy-origin" type="button">コピー</button></p>
+    <p id="file-warn" hidden><strong>注意：</strong>ファイルを直接開いている（file://）ため、Googleログインは使えません。GitHub Pages などのURLから開いてください。</p>
+    <form class="form" id="cid-form">
+      <input type="text" id="cid" placeholder="xxxxxxxxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false" required>
+      <button class="btn primary" type="submit">保存</button>
+      <button class="btn" type="button" id="cid-cancel" hidden>キャンセル</button>
+    </form>
+  </section>
+
+  <!-- ログイン -->
+  <section class="panel" id="view-login" hidden>
+    <h2>Googleアカウントでログイン</h2>
+    <p>登録チャンネルと再生リストを読み取るために、YouTubeの読み取り専用権限（youtube.readonly）を使います。動画の編集や登録解除などはできません。</p>
+    <div class="form"><button class="btn primary" id="btn-login">Googleでログイン</button></div>
+  </section>
+
+  <!-- 配信タブ -->
+  <section id="view-live" hidden>
+    <div class="toolbar">
+      <div class="seg" id="seg" role="group" aria-label="表示切り替え">
+        <button data-f="all" aria-pressed="true">すべて<span class="n" data-n="all"></span></button>
+        <button data-f="live" aria-pressed="false">配信中<span class="n" data-n="live"></span></button>
+        <button data-f="upcoming" aria-pressed="false">配信予定<span class="n" data-n="upcoming"></span></button>
+      </div>
+      <input type="search" id="q" placeholder="タイトル・チャンネル名で絞り込み" autocomplete="off">
+    </div>
+    <div class="status" id="status"></div>
+    <div id="live-list"></div>
+  </section>
+
+  <!-- 再生リストタブ -->
+  <section id="view-playlists" hidden>
+    <div class="toolbar">
+      <select id="pl-select" aria-label="再生リスト"></select>
+      <input type="search" id="pl-q" placeholder="タイトル・チャンネル名で絞り込み" autocomplete="off">
+    </div>
+    <div class="status" id="pl-status"></div>
+    <div id="pl-list"></div>
+    <div class="more" id="pl-more" hidden>
+      <button class="btn" id="pl-more-btn">さらに読み込む</button>
+      <button class="btn" id="pl-all-btn">すべて読み込む</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+'use strict';
+
+const SCOPE = 'https://www.googleapis.com/auth/youtube.readonly';
+const API = 'https://www.googleapis.com/youtube/v3/';
+const STALE_UPCOMING_MS = 12 * 3600 * 1000; // 開始予定を12時間以上過ぎた「予定」は非表示
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s || '').normalize('NFKC').toLowerCase();
+
+const store = area => ({
+  get(k, d = null){ try{ const v = area().getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ area().setItem(k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ area().removeItem(k); }catch(e){} }
+});
+const LS = store(() => localStorage), SS = store(() => sessionStorage);
+
+const state = {
+  clientId: LS.get('yt_client_id', ''),
+  token: null, tokenExp: 0, showSetup: false,
+  tab: 'live', filter: LS.get('yt_filter', 'all'), q: '',
+  items: [], lastUpdated: null, channelCount: 0, failed: 0, loading: false, progress: '',
+  playlists: [], plId: LS.get('yt_pl', null), plItems: [], plNext: null, plQ: '', plLoading: false, plLoaded: false
+};
+{ const s = SS.get('yt_token'); if (s && s.exp > Date.now() + 60000){ state.token = s.t; state.tokenExp = s.exp; } }
+let tokenClient = null;
+
+/* ---------- 表示ユーティリティ ---------- */
+const fmtD = new Intl.DateTimeFormat('ja-JP', { month: 'numeric', day: 'numeric', weekday: 'short' });
+const fmtT = new Intl.DateTimeFormat('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
+const dkey = d => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+function span(ms){
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return '1分未満';
+  if (m < 60) return m + '分';
+  const h = Math.floor(m / 60), mm = m % 60;
+  if (h < 24) return mm ? `${h}時間${mm}分` : `${h}時間`;
+  return `${Math.floor(h / 24)}日${h % 24}時間`;
+}
+function dayLabel(t){
+  const d = new Date(t), n = new Date(), tom = new Date(n); tom.setDate(n.getDate() + 1);
+  const base = fmtD.format(d);
+  if (dkey(d) === dkey(n)) return '今日 · ' + base;
+  if (dkey(d) === dkey(tom)) return '明日 · ' + base;
+  return base;
+}
+const pickThumb = t => { t = t || {}; const x = t.medium || t.high || t.standard || t.default; return x ? x.url : ''; };
+
+function showBanner(msg){ $('banner-text').textContent = msg; $('banner').hidden = false; }
+function hideBanner(){ $('banner').hidden = true; }
+
+/* ---------- 認証 ---------- */
+function ensureAuth(){
+  if (tokenClient) return true;
+  if (!(window.google && google.accounts && google.accounts.oauth2)){
+    showBanner('Googleのログイン用スクリプトを読み込めません。ネットワークや広告ブロッカーを確認し、少し待ってから再試行してください。');
+    return false;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: state.clientId,
+    scope: SCOPE,
+    callback: resp => {
+      if (resp.error){ showBanner('ログインに失敗しました：' + resp.error); return; }
+      state.token = resp.access_token;
+      state.tokenExp = Date.now() + Number(resp.expires_in || 3600) * 1000;
+      SS.set('yt_token', { t: state.token, exp: state.tokenExp });
+      hideBanner();
+      startApp();
+    },
+    error_callback: err => showBanner('ログインがキャンセル、またはポップアップがブロックされました（' + ((err && err.type) || 'error') + '）。')
+  });
+  return true;
+}
+function signOutLocal(msg){
+  state.token = null; state.tokenExp = 0; SS.del('yt_token');
+  if (msg) showBanner(msg);
+  renderAll();
+}
+
+/* ---------- API ---------- */
+class ApiError extends Error {
+  constructor(message, status, reason){ super(message); this.status = status; this.reason = reason || ''; }
+}
+async function api(path, params){
+  if (!state.token || state.tokenExp < Date.now()){
+    signOutLocal('ログインの有効期限が切れました。もう一度ログインしてください。');
+    throw new ApiError('expired', 401);
+  }
+  const url = new URL(API + path);
+  for (const [k, v] of Object.entries(params || {})) if (v !== undefined && v !== null) url.searchParams.set(k, v);
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + state.token } });
+  if (res.status === 401){
+    signOutLocal('ログインの有効期限が切れました。もう一度ログインしてください。');
+    throw new ApiError('unauthorized', 401);
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok){
+    const e = data && data.error || {};
+    throw new ApiError(e.message || res.statusText, res.status, e.errors && e.errors[0] && e.errors[0].reason);
+  }
+  return data;
+}
+async function fetchAll(path, params){
+  const out = []; let pageToken;
+  do {
+    const d = await api(path, { ...params, pageToken });
+    out.push(...(d.items || []));
+    pageToken = d.nextPageToken;
+  } while (pageToken);
+  return out;
+}
+async function pool(list, n, fn){
+  let i = 0, stop = false;
+  const run = async () => {
+    while (!stop && i < list.length){
+      const idx = i++;
+      try{ await fn(list[idx], idx); }catch(e){ stop = true; throw e; }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(n, list.length) }, run));
+}
+function handleError(e){
+  console.error(e);
+  if (e.status === 401) return;
+  let m = e.message || String(e);
+  if (e.reason === 'quotaExceeded') m = 'YouTube APIの1日の割り当て（10,000ユニット）を使い切りました。日本時間の16〜17時頃にリセットされます。';
+  else if (e.reason === 'accessNotConfigured') m = 'このGoogle Cloudプロジェクトで YouTube Data API v3 が有効化されていません。';
+  else if (e.status === 403) m = 'アクセスが拒否されました（' + (e.reason || m) + '）。OAuth同意画面のテストユーザーに自分のアカウントを追加しているか確認してください。';
+  showBanner(m);
+}
+
+/* ---------- 配信タブ：データ取得 ---------- */
+async function collectVideoIds(channels){
+  const ids = new Set(); let done = 0, failed = 0;
+  await pool(channels, 6, async ch => {
+    try{
+      // アップロード一覧のIDは、チャンネルID先頭の "UC" を "UU" に置き換えたもの
+      const d = await api('playlistItems', { part: 'contentDetails', playlistId: 'UU' + ch.id.slice(2), maxResults: 20 });
+      for (const it of d.items || []) ids.add(it.contentDetails.videoId);
+    }catch(e){
+      if (e.status === 401 || e.reason === 'quotaExceeded') throw e;
+      failed++;
+    }
+    done++;
+    state.progress = `動画を確認中… ${done}/${channels.length} チャンネル`;
+    renderStatus();
+  });
+  return { ids: [...ids], failed };
+}
+async function loadVideos(ids){
+  const doneSet = new Set(LS.get('yt_done', []));          // 配信ではない／終了済みと判明した動画（再取得しない）
+  const todo = ids.filter(id => !doneSet.has(id));
+  const chunks = []; for (let i = 0; i < todo.length; i += 50) chunks.push(todo.slice(i, i + 50));
+  const found = [], newDone = [];
+  await pool(chunks, 4, async ch => {
+    const d = await api('videos', { part: 'snippet,liveStreamingDetails', id: ch.join(','), maxResults: 50 });
+    const got = new Set();
+    for (const v of d.items || []){
+      got.add(v.id);
+      const st = v.snippet.liveBroadcastContent;
+      if (st === 'live' || st === 'upcoming') found.push(v); else newDone.push(v.id);
+    }
+    for (const id of ch) if (!got.has(id)) newDone.push(id); // 削除・非公開
+  });
+  LS.set('yt_done', [...doneSet, ...newDone].slice(-6000));
+  return found;
+}
+function toItem(v){
+  const d = v.liveStreamingDetails || {};
+  const live = v.snippet.liveBroadcastContent === 'live';
+  const s = live ? (d.actualStartTime || d.scheduledStartTime) : d.scheduledStartTime;
+  return {
+    id: v.id, title: v.snippet.title, channel: v.snippet.channelTitle,
+    status: live ? 'live' : 'upcoming',
+    start: s ? new Date(s).getTime() : null,
+    viewers: d.concurrentViewers ? Number(d.concurrentViewers) : null,
+    thumb: pickThumb(v.snippet.thumbnails)
+  };
+}
+const cmp = (a, b) => {
+  if (a.status !== b.status) return a.status === 'live' ? -1 : 1;
+  if (a.start == null) return 1; if (b.start == null) return -1;
+  return a.status === 'live' ? b.start - a.start : a.start - b.start;
+};
+async function refreshLive(){
+  if (state.loading) return;
+  state.loading = true; state.progress = '登録チャンネルを取得中…'; renderStatus(); $('btn-refresh').disabled = true;
+  try{
+    const subs = await fetchAll('subscriptions', { part: 'snippet', mine: 'true', maxResults: 50 });
+    const channels = subs.map(s => ({ id: s.snippet.resourceId.channelId }));
+    state.channelCount = channels.length;
+    const { ids, failed } = await collectVideoIds(channels);
+    state.progress = '配信情報を取得中…'; renderStatus();
+    const vids = await loadVideos(ids);
+    const now = Date.now();
+    state.items = vids.map(toItem)
+      .filter(it => !(it.status === 'upcoming' && it.start && it.start < now - STALE_UPCOMING_MS))
+      .sort(cmp);
+    state.failed = failed; state.lastUpdated = now;
+  }catch(e){ handleError(e); }
+  finally{ state.loading = false; $('btn-refresh').disabled = false; renderLive(); renderStatus(); }
+}
+
+/* ---------- 配信タブ：描画 ---------- */
+function card(o){
+  const badge = o.badge === 'live' ? '<span class="badge live">● LIVE</span>' : o.badge === 'soon' ? '<span class="badge soon">予定</span>' : '';
+  return `<a class="card" href="${esc(o.href)}" target="_blank" rel="noopener">
+    <div class="thumb">${o.thumb ? `<img loading="lazy" src="${esc(o.thumb)}" alt="">` : ''}${badge}</div>
+    <div class="meta"><div class="title">${esc(o.title)}</div><div class="ch">${esc(o.channel)}</div>
+    <div class="when ${esc(o.whenClass || '')}">${esc(o.when || '')}</div></div></a>`;
+}
+function whenText(it, now){
+  if (it.status === 'live'){
+    const p = ['配信中'];
+    if (it.start) p.push(span(now - it.start) + '経過');
+    if (it.viewers != null) p.push(it.viewers.toLocaleString('ja-JP') + '人が視聴中');
+    return p.join(' · ');
+  }
+  if (!it.start) return '開始時刻未定';
+  const t = fmtD.format(new Date(it.start)) + ' ' + fmtT.format(new Date(it.start));
+  return it.start > now ? `${t} · あと${span(it.start - now)}` : `${t} · 開始予定を${span(now - it.start)}過ぎています`;
+}
+function section(title, n, cls, html){
+  return `<div class="sec ${cls || ''}"><span>${esc(title)}</span><span class="c">${n}件</span></div><div class="grid">${html}</div>`;
+}
+function renderLive(){
+  if ($('view-live').hidden) return;
+  const q = norm(state.q), now = Date.now();
+  const base = state.items.filter(it => !q || norm(it.title + ' ' + it.channel).includes(q));
+  const nLive = base.filter(i => i.status === 'live').length;
+  $('seg').querySelector('[data-n="all"]').textContent = base.length;
+  $('seg').querySelector('[data-n="live"]').textContent = nLive;
+  $('seg').querySelector('[data-n="upcoming"]').textContent = base.length - nLive;
+  for (const b of $('seg').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.f === state.filter));
+
+  const shown = state.filter === 'all' ? base : base.filter(i => i.status === state.filter);
+  const mk = it => card({
+    href: 'https://www.youtube.com/watch?v=' + it.id, thumb: it.thumb, title: it.title, channel: it.channel,
+    badge: it.status === 'live' ? 'live' : 'soon', when: whenText(it, now), whenClass: it.status === 'live' ? 'live' : 'soon'
+  });
+  let html = '';
+  const live = shown.filter(i => i.status === 'live');
+  if (live.length) html += section('配信中', live.length, 'live', live.map(mk).join(''));
+  const groups = new Map();
+  for (const it of shown.filter(i => i.status === 'upcoming')){
+    const key = it.start == null ? 'none' : it.start < now ? 'over' : dkey(new Date(it.start));
+    if (!groups.has(key)) groups.set(key, { label: key === 'none' ? '開始時刻未定' : key === 'over' ? '開始予定を過ぎています' : dayLabel(it.start), list: [] });
+    groups.get(key).list.push(it);
+  }
+  for (const g of groups.values()) html += section(g.label, g.list.length, '', g.list.map(mk).join(''));
+  if (!shown.length){
+    html = `<div class="empty">${state.lastUpdated ? '該当する配信はありません' : (state.loading ? '' : '「更新」を押すと取得します')}</div>`;
+  }
+  $('live-list').innerHTML = html;
+}
+function renderStatus(){
+  const el = $('status');
+  if (state.loading){ el.innerHTML = '<span class="spin"></span>' + esc(state.progress || '読み込み中…'); return; }
+  const p = [];
+  if (state.lastUpdated){
+    p.push('最終更新 ' + fmtT.format(new Date(state.lastUpdated)));
+    p.push('登録チャンネル ' + state.channelCount + '件');
+    if (state.failed) p.push('取得できなかったチャンネル ' + state.failed + '件');
+  }
+  el.textContent = p.join(' · ');
+}
+
+/* ---------- 再生リストタブ ---------- */
+async function loadPlaylists(){
+  const items = await fetchAll('playlists', { part: 'snippet,contentDetails', mine: 'true', maxResults: 50 });
+  const list = items.map(p => ({ id: p.id, title: p.snippet.title, count: p.contentDetails.itemCount }));
+  try{
+    const ch = await api('channels', { part: 'contentDetails', mine: 'true' });
+    const likes = ch.items && ch.items[0] && ch.items[0].contentDetails.relatedPlaylists.likes;
+    if (likes) list.unshift({ id: likes, title: '高く評価した動画', count: null });
+  }catch(e){ if (e.status === 401) throw e; }
+  state.playlists = list;
+}
+async function loadPlaylistItems(reset, all){
+  if (!state.plId) return;
+  if (reset){ state.plItems = []; state.plNext = null; state.plLoaded = false; }
+  const id = state.plId;
+  state.plLoading = true; renderPlaylists();
+  try{
+    let guard = 0;
+    do {
+      const d = await api('playlistItems', { part: 'snippet', playlistId: id, maxResults: 50, pageToken: state.plNext || undefined });
+      if (id !== state.plId) return;
+      for (const it of d.items || []){
+        const s = it.snippet;
+        if (!s || !s.thumbnails || s.title === 'Deleted video' || s.title === 'Private video') continue;
+        state.plItems.push({ id: s.resourceId.videoId, title: s.title, channel: s.videoOwnerChannelTitle || '', added: s.publishedAt, thumb: pickThumb(s.thumbnails) });
+      }
+      state.plNext = d.nextPageToken || null;
+      state.plLoaded = true;
+    } while (all && state.plNext && ++guard < 100);
+  }catch(e){ handleError(e); }
+  finally{ if (id === state.plId){ state.plLoading = false; renderPlaylists(); } }
+}
+async function openPlaylistsTab(){
+  if (!state.playlists.length){
+    state.plLoading = true; renderPlaylists();
+    try{ await loadPlaylists(); }catch(e){ handleError(e); }
+    state.plLoading = false;
+    if (!state.plId || !state.playlists.some(p => p.id === state.plId)) state.plId = state.playlists[0] ? state.playlists[0].id : null;
+    renderPlaylistSelect();
+  }
+  if (state.plId && !state.plLoaded) await loadPlaylistItems(true);
+  renderPlaylists();
+}
+function renderPlaylistSelect(){
+  $('pl-select').innerHTML = state.playlists.map(p =>
+    `<option value="${esc(p.id)}"${p.id === state.plId ? ' selected' : ''}>${esc(p.title)}${p.count != null ? '（' + p.count + '）' : ''}</option>`).join('');
+}
+function renderPlaylists(){
+  if ($('view-playlists').hidden) return;
+  const q = norm(state.plQ);
+  const shown = state.plItems.filter(it => !q || norm(it.title + ' ' + it.channel).includes(q));
+  $('pl-list').innerHTML = shown.length
+    ? `<div class="grid" style="margin-top:16px">${shown.map(it => card({
+        href: `https://www.youtube.com/watch?v=${it.id}&list=${state.plId}`, thumb: it.thumb, title: it.title, channel: it.channel,
+        when: it.added ? '追加日 ' + new Date(it.added).toLocaleDateString('ja-JP') : ''
+      })).join('')}</div>`
+    : `<div class="empty">${state.plLoading ? '' : state.playlists.length || state.plLoaded ? '該当する動画はありません' : '再生リストがありません'}</div>`;
+  $('pl-status').innerHTML = state.plLoading
+    ? '<span class="spin"></span>読み込み中…'
+    : esc(state.plLoaded ? `読み込み済み ${state.plItems.length}件${q ? ' · 表示 ' + shown.length + '件' : ''}${state.plNext ? '（続きがあります）' : ''}` : '');
+  $('pl-more').hidden = !state.plNext || state.plLoading;
+}
+
+/* ---------- 画面全体 ---------- */
+function renderAll(){
+  const signedIn = !!state.token && state.tokenExp > Date.now();
+  const setup = !state.clientId || state.showSetup;
+  $('view-setup').hidden = !setup;
+  $('view-login').hidden = setup || signedIn;
+  $('view-live').hidden = setup || !signedIn || state.tab !== 'live';
+  $('view-playlists').hidden = setup || !signedIn || state.tab !== 'playlists';
+  $('tabs').hidden = setup || !signedIn;
+  $('btn-refresh').hidden = setup || !signedIn || state.tab !== 'live';
+  $('btn-logout').hidden = !signedIn;
+  $('btn-settings').hidden = !state.clientId || setup;
+  for (const t of $('tabs').querySelectorAll('.tab')) t.setAttribute('aria-selected', String(t.dataset.tab === state.tab));
+  if (setup){
+    $('origin').textContent = location.origin === 'null' ? '(取得できません)' : location.origin;
+    $('file-warn').hidden = location.protocol !== 'file:';
+    $('cid').value = state.clientId;
+    $('cid-cancel').hidden = !state.clientId;
+  }
+  renderLive(); renderStatus(); renderPlaylists();
+}
+function startApp(){
+  renderAll();
+  refreshLive();
+  if (state.tab === 'playlists') openPlaylistsTab();
+}
+
+/* ---------- イベント ---------- */
+$('banner-close').onclick = hideBanner;
+$('copy-origin').onclick = () => { try{ navigator.clipboard.writeText(location.origin); }catch(e){} };
+$('cid-form').onsubmit = e => {
+  e.preventDefault();
+  const v = $('cid').value.trim();
+  if (!v) return;
+  if (v !== state.clientId){ tokenClient = null; state.token = null; state.tokenExp = 0; SS.del('yt_token'); }
+  state.clientId = v; LS.set('yt_client_id', v); state.showSetup = false; hideBanner(); renderAll();
+};
+$('cid-cancel').onclick = () => { state.showSetup = false; renderAll(); };
+$('btn-settings').onclick = () => { state.showSetup = true; renderAll(); };
+$('btn-login').onclick = () => { if (ensureAuth()) tokenClient.requestAccessToken({ prompt: '' }); };
+$('btn-logout').onclick = () => {
+  const t = state.token;
+  try{ if (t && window.google && google.accounts) google.accounts.oauth2.revoke(t, () => {}); }catch(e){}
+  state.items = []; state.lastUpdated = null; state.playlists = []; state.plItems = []; state.plLoaded = false;
+  signOutLocal();
+};
+$('btn-refresh').onclick = refreshLive;
+$('tabs').onclick = e => {
+  const b = e.target.closest('.tab'); if (!b) return;
+  state.tab = b.dataset.tab; renderAll();
+  if (state.tab === 'playlists') openPlaylistsTab();
+};
+$('seg').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  state.filter = b.dataset.f; LS.set('yt_filter', state.filter); renderLive();
+};
+$('q').oninput = e => { state.q = e.target.value; renderLive(); };
+$('pl-q').oninput = e => { state.plQ = e.target.value; renderPlaylists(); };
+$('pl-select').onchange = e => { state.plId = e.target.value; LS.set('yt_pl', state.plId); loadPlaylistItems(true); };
+$('pl-more-btn').onclick = () => loadPlaylistItems(false, false);
+$('pl-all-btn').onclick = () => loadPlaylistItems(false, true);
+
+// 「あと◯分」などの相対表示を1分ごとに更新（APIは呼ばない）
+setInterval(() => { if (!state.loading) renderLive(); }, 60000);
+
+/* ---------- 起動 ---------- */
+if (state.clientId && state.token && state.tokenExp > Date.now()){
+  startApp();
+} else {
+  renderAll();
+}
+})();
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</body>
+</html>
